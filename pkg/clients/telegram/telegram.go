@@ -2,7 +2,7 @@ package telegram
 
 import (
 	"encoding/json"
-	"github/commedesvlados/go-tg-bot/pkg/lib/e"
+	"github.com/commedesvlados/go-tg-bot/pkg/lib/e"
 	"io"
 	"net/http"
 	"net/url"

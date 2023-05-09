@@ -11,6 +11,10 @@ type Config struct {
 	Telegram struct {
 		TgBotHost  string `env:"TELEGRAM_BOT_HOST"`
 		TgBotToken string `env:"TELEGRAM_BOT_TOKEN"`
+		BatchSize  int    `env:"BATCH_SIZE"`
+	}
+	SQlite struct {
+		StoragePath string `env:"STORAGE_PATH"`
 	}
 }
 

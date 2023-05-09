@@ -1,9 +1,10 @@
 package telegram
 
 import (
+	"context"
 	"errors"
-	"github/commedesvlados/go-tg-bot/internal/storage"
-	"github/commedesvlados/go-tg-bot/pkg/lib/e"
+	"github.com/commedesvlados/go-tg-bot/internal/storage"
+	"github.com/commedesvlados/go-tg-bot/pkg/lib/e"
 	"log"
 	"net/url"
 	"strings"
@@ -15,18 +16,18 @@ const (
 	StartCmd = "/start"
 )
 
-func (p *EventProcessor) doCmd(text string, chatId int, username string) error {
+func (p *EventProcessor) doCmd(ctx context.Context, text string, chatId int, username string) error {
 	text = strings.TrimSpace(text)
 
 	log.Printf("got new commad '%s' from '%s'\n", text, username)
 
 	if isAddCmd(text) {
-		return p.savePage(chatId, text, username)
+		return p.savePage(ctx, chatId, text, username)
 	}
 
 	switch text {
 	case RndCmd:
-		return p.sendRandom(chatId, username)
+		return p.sendRandom(ctx, chatId, username)
 	case Helpcmd:
 		return p.sendHelp(chatId)
 	case StartCmd:
@@ -36,13 +37,13 @@ func (p *EventProcessor) doCmd(text string, chatId int, username string) error {
 	}
 }
 
-func (p *EventProcessor) savePage(chatId int, pageURL string, username string) error {
+func (p *EventProcessor) savePage(ctx context.Context, chatId int, pageURL string, username string) error {
 	page := &storage.Page{
 		URL:      pageURL,
 		Username: username,
 	}
 
-	isExists, err := p.storage.IsExists(page)
+	isExists, err := p.storage.IsExists(ctx, page)
 	if err != nil {
 		return e.Wrap("page already exists: ", err)
 	}
@@ -50,7 +51,7 @@ func (p *EventProcessor) savePage(chatId int, pageURL string, username string) e
 		return p.tg.SendMessage(chatId, msgAlreadyExists)
 	}
 
-	if err := p.storage.Save(page); err != nil {
+	if err := p.storage.Save(ctx, page); err != nil {
 		return e.Wrap("can't save page", err)
 	}
 
@@ -61,9 +62,9 @@ func (p *EventProcessor) savePage(chatId int, pageURL string, username string) e
 	return nil
 }
 
-func (p *EventProcessor) sendRandom(chatId int, username string) error {
-	page, err := p.storage.PickRandom(username)
-	if err != nil && errors.Is(err, storage.ErrNoSavedPages) {
+func (p *EventProcessor) sendRandom(ctx context.Context, chatId int, username string) error {
+	page, err := p.storage.PickRandom(ctx, username)
+	if err != nil && !errors.Is(err, storage.ErrNoSavedPages) {
 		return e.Wrap("can't do command: can't send random", err)
 	}
 	if errors.Is(err, storage.ErrNoSavedPages) {
@@ -74,7 +75,7 @@ func (p *EventProcessor) sendRandom(chatId int, username string) error {
 		return e.Wrap("can't do command: can't send random", err)
 	}
 
-	return p.storage.Remove(page)
+	return p.storage.Remove(ctx, page)
 }
 
 func (p *EventProcessor) sendHelp(chatId int) error {
@@ -94,9 +95,6 @@ func isAddCmd(text string) bool {
 }
 
 func isURL(text string) bool {
-	// https://gmail.com or http://gmail.com
-	// TODO: gmail.com
-
 	u, err := url.Parse(text)
 
 	return err == nil && u.Host != ""

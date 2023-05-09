@@ -1,11 +1,12 @@
 package telegram
 
 import (
+	"context"
 	"errors"
-	"github/commedesvlados/go-tg-bot/internal/events"
-	"github/commedesvlados/go-tg-bot/internal/storage"
-	"github/commedesvlados/go-tg-bot/pkg/clients/telegram"
-	"github/commedesvlados/go-tg-bot/pkg/lib/e"
+	"github.com/commedesvlados/go-tg-bot/internal/events"
+	"github.com/commedesvlados/go-tg-bot/internal/storage"
+	"github.com/commedesvlados/go-tg-bot/pkg/clients/telegram"
+	"github.com/commedesvlados/go-tg-bot/pkg/lib/e"
 )
 
 type EventProcessor struct {
@@ -49,22 +50,22 @@ func (p *EventProcessor) Fetch(limit int) ([]events.Event, error) {
 	return res, nil
 }
 
-func (p *EventProcessor) Process(event events.Event) error {
+func (p *EventProcessor) Process(ctx context.Context, event events.Event) error {
 	switch event.Type {
 	case events.Message:
-		return p.processMessage(event)
+		return p.processMessage(ctx, event)
 	default:
 		return e.Wrap("can't process message", ErrUnknownEventType)
 	}
 }
 
-func (p *EventProcessor) processMessage(event events.Event) error {
+func (p *EventProcessor) processMessage(ctx context.Context, event events.Event) error {
 	meta, err := meta(event)
 	if err != nil {
 		return e.Wrap("can't process message", err)
 	}
 
-	if err := p.doCmd(event.Text, meta.ChatID, meta.Username); err != nil {
+	if err := p.doCmd(ctx, event.Text, meta.ChatID, meta.Username); err != nil {
 		return e.Wrap("can't process message", err)
 	}
 
